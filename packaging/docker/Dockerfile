@@ -142,7 +142,12 @@ WORKDIR /var/www/htdocs
 
 VOLUME [ "/var/www/templates_c", "/var/www/conf", "/var/www/cache" ]
 
-EXPOSE 80
+RUN chgrp -R 0 /var/www/htdocs && \
+	chmod -R g=u /var/www/htdocs && \
+	chgrp -R 0 /var/www/conf && \
+	chmod -R g=u /var/www/conf && \
+    sed -i "s/80/8080/g" /etc/apache2/sites-available/* /etc/apache2/ports.conf
+EXPOSE 8080
 
 ENTRYPOINT [ "/entrypoint.sh" ]
 CMD [ "apache2-foreground" ]
