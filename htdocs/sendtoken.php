@@ -32,6 +32,7 @@ $ldap = "";
 $userdn = "";
 $token = "";
 $usermail = "";
+$formtoken = "";
 
 if (!$mail_address_use_ldap) {
     if (isset($_POST["mail"]) and $_POST["mail"]) {
@@ -48,11 +49,29 @@ if (!$mail_address_use_ldap) {
 if (isset($_REQUEST["login"]) and $_REQUEST["login"]) { $login = strval($_REQUEST["login"]);}
 else { $result = "loginrequired";}
 
-if (! isset($_POST["mail"]) and ! isset($_REQUEST["login"])) { $result = "emptysendtokenform"; }
+if ( $result === "" and ( ! isset($_REQUEST["formtoken"]) or ! $_REQUEST["formtoken"] )  ) {
+    $result = "missingformtoken";
+}
+
+if (! isset($_POST["mail"]) and ! isset($_REQUEST["login"])) {
+
+    $result = "emptysendtokenform";
+
+    $formtoken = $sspCache->generate_form_token($cache_form_expiration);
+}
 
 # Check the entered username for characters that our installation doesn't support
 if ( $result === "" ) {
     $result = check_username_validity($login,$login_forbidden_chars);
+}
+
+#==============================================================================
+# Check tokenform
+#==============================================================================
+
+if ( !$result ) {
+    $formtoken = strval($_REQUEST["formtoken"]);
+    $result = $sspCache->verify_form_token($formtoken);
 }
 
 #==============================================================================
@@ -141,29 +160,38 @@ if ( $result === "" ) {
     }
 }
 
+#==============================================================================
+# if:
+#  * this is not the first time we load this form (not emptysendtokenform), and
+#  * something bad happened (bad captcha,...)
+# regenerate a form token
+#==============================================================================
+if( $result != "emptysendtokenform" && $result != "" )
+{
+    $formtoken = $sspCache->generate_form_token($cache_form_expiration);
+}
 
 #==============================================================================
 # Build and store token
 #==============================================================================
 if ( !$result ) {
 
-    # Use PHP session to register token
-    # We do not generate cookie
-    ini_set("session.use_cookies",0);
-    ini_set("session.use_only_cookies",1);
-
-    session_name("token");
-    session_start();
-    $_SESSION['login'] = $login;
-    $_SESSION['time']  = time();
-
+    # Use cache to register token sent by mail
+    $token_session_id = $sspCache->save_token(
+                            [
+                                'login' => $login,
+                                'time' => time()
+                            ],
+                            null,
+                            $cache_token_expiration
+                        );
     if ( $crypt_tokens ) {
-        $token = encrypt(session_id(), $keyphrase);
+        $token = encrypt($token_session_id, $keyphrase);
     } else {
-        $token = session_id();
+        $token = $token_session_id();
     }
-
 }
+
 
 #==============================================================================
 # Send token by mail

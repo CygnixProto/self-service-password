@@ -38,6 +38,11 @@ $token = "";
 $sessiontoken = "";
 $attempts = 0;
 
+if( isset($_REQUEST["formtoken"]) )
+{
+    $formtoken = strval($_REQUEST["formtoken"]);
+}
+
 #==============================================================================
 # Verify minimal information for treatment
 # Encryption needs to be activated
@@ -54,7 +59,7 @@ if (!$crypt_tokens) {
                 $phone = sanitize_number($phone);
             }
             if ($sms_truncate_number) {
-                $phone = truncate_number($phone);
+                $phone = truncate_number($phone, $sms_truncate_number_length);
             }
         }else{
             $result = "smsrequired";
@@ -70,6 +75,10 @@ if (!$crypt_tokens) {
             $result = "loginrequired";
         }
         if ((!$login) and (!$phone)){
+            if(!$sms_use_ldap)
+            {
+                $formtoken = $sspCache->generate_form_token($cache_form_expiration);
+            }
             $result = "emptysendsmsform";
         }
     }
@@ -83,15 +92,15 @@ if (!$crypt_tokens) {
 
         $tokenid = decrypt($token, $keyphrase);
 
-        ini_set("session.use_cookies",0);
-        ini_set("session.use_only_cookies",1);
+        # Get session from cache
+        $cached_token_content = $sspCache->get_token($tokenid);
 
-        session_id($tokenid);
-        session_name("smstoken");
-        session_start();
-        $login        = $_SESSION['login'];
-        $sessiontoken = $_SESSION['smstoken'];
-        $attempts     = $_SESSION['attempts'];
+        if($cached_token_content)
+        {
+            $login        = $cached_token_content['login'];
+            $sessiontoken = $cached_token_content['smstoken'];
+            $attempts     = $cached_token_content['attempts'];
+        }
 
         if (!$login or !$sessiontoken) {
             list($result, $token) = obscure_info_sendsms("tokenattempts",
@@ -99,11 +108,12 @@ if (!$crypt_tokens) {
                                                          $token,
                                                          $obscure_notfound_sendsms,
                                                          $keyphrase);
-            error_log("Unable to open session $smstokenid");
+            error_log("Unable to open session $tokenid");
         } elseif ($sessiontoken != $smstoken) {
             # To have only x tries and not x+1 tries
             if ($attempts < ($sms_max_attempts_token - 1)) {
-                $_SESSION['attempts'] = $attempts + 1;
+                $cached_token_content['attempts'] = $attempts + 1;
+                $sspCache->save_token($cached_token_content, $tokenid);
                 $result = "tokenattempts";
                 error_log("SMS token $smstoken not valid, attempt $attempts");
             } else {
@@ -111,28 +121,29 @@ if (!$crypt_tokens) {
                 error_log("SMS token $smstoken not valid");
             }
         } elseif (isset($token_lifetime)) {
-            $tokentime = $_SESSION['time'];
+            $tokentime = $cached_token_content['time'];
             if ( time() - $tokentime > $token_lifetime ) {
                 $result = "tokennotvalid";
                 error_log("Token lifetime expired");
             }
         }
         if ( $result === "tokennotvalid" ) {
-            $_SESSION = array();
-            session_destroy();
+            # Remove token
+            $sspCache->cache->deleteItem($tokenid);
         }
         if ( $result === "" ) {
-            $_SESSION = array();
-            session_destroy();
+            # Remove token
+            $sspCache->cache->deleteItem($tokenid);
             $result = "buildtoken";
         }
     } elseif (isset($_REQUEST["encrypted_sms_login"])) {
         $decrypted_sms_login = explode(':', decrypt($_REQUEST["encrypted_sms_login"], $keyphrase));
         $login = $decrypted_sms_login[1];
         [$result, $sms, $displayname, $userdn] = get_user_infos(
-                                    $ldapInstance, $ldap_base, $ldap_filter,
+                                    $ldapInstance, $ldap_base, $ldap_filter, $ldap_scope,
                                     $ldap_fullname_attribute, $sms_attributes,
                                     $sms_sanitize_number, $sms_truncate_number,
+                                    $sms_truncate_number_length,
                                     $obscure_notfound_sendsms, $token,
                                     $keyphrase, $login);
         if (!$result) { $result = "sendsms"; }
@@ -140,6 +151,10 @@ if (!$crypt_tokens) {
         $login = strval($_REQUEST["login"]);
         $result = check_username_validity($login,$login_forbidden_chars);
     }else{
+        if(!$sms_use_ldap)
+        {
+            $formtoken = $sspCache->generate_form_token($cache_form_expiration);
+        }
         $result = "emptysendsmsform";
     }
 }
@@ -156,9 +171,10 @@ if ( $result === "" and $use_captcha) {
 #==============================================================================
 if ( $result === "" ) {
     [$result, $sms, $displayname, $userdn] = get_user_infos(
-                                            $ldapInstance, $ldap_base, $ldap_filter,
+                                            $ldapInstance, $ldap_base, $ldap_filter, $ldap_scope,
                                             $ldap_fullname_attribute, $sms_attributes,
                                             $sms_sanitize_number, $sms_truncate_number,
+                                            $sms_truncate_number_length,
                                             $obscure_notfound_sendsms, $token,
                                             $keyphrase, $login);
     if ($sms){
@@ -183,6 +199,9 @@ if ( $result === "" ) {
             if ( $sms_partially_hide_number ) {
                 $smsdisplay = substr_replace($sms, '****', 4 , 4);
             }
+
+            $formtoken = $sspCache->generate_form_token($cache_form_expiration);
+
             $result = "smsuserfound";
         }
         if ($use_ratelimit) {
@@ -194,6 +213,17 @@ if ( $result === "" ) {
     }
 }
 
+#==============================================================================
+# Check formtoken
+#==============================================================================
+if ($result === "sendsms") {
+    $formtoken = strval($_REQUEST["formtoken"]);
+    $formtoken_result = $sspCache->verify_form_token($formtoken);
+    if($formtoken_result == "invalidformtoken")
+    {
+        $result = $formtoken_result;
+    }
+}
 
 #==============================================================================
 # Generate sms token and send by sms
@@ -202,16 +232,17 @@ if ($result === "sendsms") {
 
     # Generate sms token
     $smstoken = generate_sms_token($sms_token_length);
-    # Create temporary session to avoid token replay
-    ini_set("session.use_cookies",0);
-    ini_set("session.use_only_cookies",1);
 
-    session_name("smstoken");
-    session_start();
-    $_SESSION['login']    = $login;
-    $_SESSION['smstoken'] = $smstoken;
-    $_SESSION['time']     = time();
-    $_SESSION['attempts'] = 0;
+    $smstoken_session_id = $sspCache->save_token(
+                               [
+                                 'login' => $login,
+                                 'smstoken' => $smstoken,
+                                 'time' => time(),
+                                 'attempts' => 0
+                               ],
+                               null,
+                               $cache_token_expiration
+                           );
 
     $data = array( "sms_attribute" => $sms, "smsresetmessage" => $messages['smsresetmessage'], "smstoken" => $smstoken) ;
 
@@ -220,7 +251,7 @@ if ($result === "sendsms") {
 
     if ($sms_method === "mail") {
         if ($mailer->send_mail($smsmailto, $mail_from, $mail_from_name, $smsmail_subject, $sms_message, $data)) {
-            $token  = encrypt(session_id(), $keyphrase);
+            $token  = encrypt($smstoken_session_id, $keyphrase);
             $result = "smssent";
             if (!empty($reset_request_log)) {
                 error_log("Send SMS code $smstoken by $sms_method to $sms\n\n", 3, $reset_request_log);
@@ -244,7 +275,7 @@ if ($result === "sendsms") {
             $definedVariables = get_defined_vars(); // get all variables, including configuration
             $smsInstance = createSMSInstance($sms_api_lib, $definedVariables);
             if ($smsInstance->send_sms_by_api($sms, $sms_message)) {
-                $token  = encrypt(session_id(), $keyphrase);
+                $token  = encrypt($smstoken_session_id, $keyphrase);
                 $result = "smssent";
                 if ( !empty($reset_request_log) ) {
                     error_log("Send SMS code $smstoken by $sms_method to $sms\n\n", 3, $reset_request_log);
@@ -264,18 +295,17 @@ if ($result === "sendsms") {
 #==============================================================================
 if ($result === "buildtoken") {
 
-    # Use PHP session to register token
-    # We do not generate cookie
-    ini_set("session.use_cookies",0);
-    ini_set("session.use_only_cookies",1);
+    $smstoken_session_id = $sspCache->save_token(
+                               [
+                                   'login' => $login,
+                                   'time' => time(),
+                                   'smstoken' => $smstoken
+                               ],
+                               null,
+                               $cache_form_expiration
+                           );
 
-    session_name("token");
-    session_start();
-    $_SESSION['login'] = $login;
-    $_SESSION['time']  = time();
-    $_SESSION['smstoken'] = $smstoken;
-
-    $token = encrypt(session_id(), $keyphrase);
+    $token = encrypt($smstoken_session_id, $keyphrase);
 
     $result = "redirect";
 }
@@ -325,15 +355,16 @@ function sanitize_number($phone_number){
   return $phone_number;
 }
 
-function truncate_number($phone_number){
+function truncate_number($phone_number, $sms_truncate_number_length){
   $phone_number = substr($phone_number, -$sms_truncate_number_length);
   return $phone_number;
 }
 
 # Function returning user's DN, displayname and sms
-function get_user_infos($ldapInstance, $ldap_base, $ldap_filter,
+function get_user_infos($ldapInstance, $ldap_base, $ldap_filter, $ldap_scope,
                                     $ldap_fullname_attribute, $sms_attributes,
                                     $sms_sanitize_number, $sms_truncate_number,
+                                    $sms_truncate_number_length,
                                     $obscure_notfound_sendsms, $token,
                                     $keyphrase, $login) {
 
@@ -384,7 +415,7 @@ function get_user_infos($ldapInstance, $ldap_base, $ldap_filter,
                         $sms = sanitize_number($sms);
                     }
                     if ($sms_truncate_number) {
-                        $sms = truncate_number($sms);
+                        $sms = truncate_number($sms, $sms_truncate_number_length);
                     }
                 }else{
                     list($result, $token) = obscure_info_sendsms("smssent_ifexists",

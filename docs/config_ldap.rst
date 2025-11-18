@@ -56,6 +56,13 @@ the requirements of your server. For example:
 
    TLS_CIPHER_SUITE TLSv1+RSA
 
+Alternatively these configurations can be overriden directly in the
+``config.inc.local.php`` using the following configurations:
+
+::
+
+   putenv("LDAPTLS_REQCERT=allow");
+   putenv("LDAPTLS_CACERT=/etc/ssl/ca.crt");
 
 You can also define the ldap connection timeout:
 
@@ -74,8 +81,8 @@ Configure DN and password in ``$ldap_bindn`` and ``$ldap_bindpw``, for example a
    $ldap_binddn = "cn=ssp,ou=dsa,dc=example,dc=com";
    $ldap_bindpw = "secret";
 
-.. tip:: You can leave these parameters empty to bind anonymously or using GSSAPI (see below). In
-  this case, the password modification must be done with user's
+.. tip:: You can empty the bind DN ($ldap_binddn = null or $ldap_binddn = "") to bind anonymously or to bind using Kerberos via SASL (see below).
+  In this case, the password modification must be done with user's
   credentials. But this will not work for password reset.
 
 If you want an SSP account to do this on behalf of the user set the value of ``$who_change_password`` to ``manager``. 
@@ -92,7 +99,7 @@ To instead use user's credentials when writing in LDAP directory, replace ``mana
   value is set in ``$who_change_password``.
 
 
-For Kerberos authentication (GSSAPI) comment out comment out ``$ldap_bind*`` and uncomment ``$ldap_krb5ccname`` lines
+For Kerberos authentication (GSSAPI), empty ``$ldap_bind*`` parameters (null or empty string) and uncomment ``$ldap_krb5ccname`` lines
 
 .. code-block:: php
 
@@ -151,6 +158,14 @@ The scope can be set in ``$ldap_scope``:
 
 .. tip:: sub is the default value. Possible values are sub, one, or base
 
+You can retrieve users with a paged search, for example if your directory does not allow you to get all entries at once.
+You can enable this feature by setting a non-zero value to the page size parameter:
+
+.. code-block:: php
+
+   $ldap_page_size = 100;
+
+.. tip:: when setting a ``$ldap_page_size`` value > 0, self-service-password sends a ``LDAP_CONTROL_PAGEDRESULTS`` control along with the search, and loop for each page
 
 Extensions
 ----------

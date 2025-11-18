@@ -16,7 +16,7 @@
 %undefine __brp_mangle_shebangs
 
 Name: self-service-password
-Version: 1.6.1
+Version: 1.7.3
 Release: 1%{?dist}
 Summary: LDAP password change web interface
 # Self-service-password is GPLv2+
@@ -67,7 +67,16 @@ Provides: bundled(php-psr-http-message) = 2.0
 Provides: bundled(php-ralouphie-getallheaders) = 3.0.3
 Provides: bundled(php-symfony-deprecation-contracts) = 3.4.0
 Provides: bundled(php-symfony-finder) = 7.0.0
-Provides: bundled(php-symfony-polyfill) = 1.29.0
+Provides: bundled(php-symfony-polyfill) = v1.31.0
+Provides: bundled(php-symfony-deprecation-contracts) = v2.5.3
+Provides: bundled(php-symfony-var-exporter) = v5.4.40
+Provides: bundled(php-psr-container) = 1.1.2
+Provides: bundled(php-symfony-service-contracts) = v2.5.3
+Provides: bundled(php-psr-cache) = 1.0.1
+Provides: bundled(php-symfony-cache-contracts) = v2.5.3
+Provides: bundled(php-psr-log) = 1.1.4
+Provides: bundled(php-symfony-cache) = v5.4.42
+Provides: bundled(php-predis-predis) = v2.2.2
 
 
 %description
@@ -112,6 +121,8 @@ cp -a             htdocs/js      %{buildroot}/%{ssp_destdir}/htdocs
 cp -a             htdocs/vendor  %{buildroot}/%{ssp_destdir}/htdocs
 install -p -m 644 lang/*         %{buildroot}/%{ssp_destdir}/lang
 install -p -m 644 lib/*.php      %{buildroot}/%{ssp_destdir}/lib
+cp -a             lib/smsovh     %{buildroot}/%{ssp_destdir}/lib
+cp -a             lib/captcha    %{buildroot}/%{ssp_destdir}/lib
 install -p -m 644 scripts/*      %{buildroot}/%{ssp_destdir}/scripts
 install -p -m 644 templates/*    %{buildroot}/%{ssp_destdir}/templates
 cp -a             vendor/*       %{buildroot}/%{ssp_destdir}/vendor
@@ -179,6 +190,65 @@ rm -rf %{ssp_cachedir}/{cache,templates_c}/*
 
 
 %changelog
+* Wed Mar 26 2025 - Clement Oudot <clem@ltb-project.org> - 1.7.3-1
+- gh#1038: Missing token after form fail
+- gh#1039: fix missing token after form fail (#1038)
+- gh#1049: Conf bug/change for Version 1.7 +
+- gh#1055: Captcha Scripts not included in el9 rpm
+- gh#1056: Documenting fix for multi-tenant configuration
+- gh#1057: Adding smsovh and captcha lib folders
+- gh#1058: Background image jagged in CSS?
+- gh#1059: Fix CSS background
+- gh#1061: Updated norwegian language
+
+* Thu Jan 09 2025 - Clement Oudot <clem@ltb-project.org> - 1.7.2-1
+- gh#1005: SMS Truncate option doesn't appear to be working
+- gh#1006: localize friendly captcha
+- gh#1007: localize friendly captcha (#1006)
+- gh#1008: PHP Fatal error:  Uncaught Error: Call to undefined function Ltb\\ldap_sasl_bind()
+- gh#1009: fix missing sasl dependency (#1008)
+- gh#1018: Invalid token after captcha fail
+- gh#1022: Container - config.inc.php.orig Permission Issues
+- gh#1026: Fixing sms number truncate bug.
+- gh#1028: fix invalid token after captcha fail (#1018)
+- gh#1029: fix permission issue on config.inc.php link when container run unprivileged (#1022)
+- gh#1030: Fix input-group on sendtoken (mail) page
+- gh#1032: Use ltb-common 0.5.0
+- gh#1034: update ltb-common to 0.5.0 (#1032)
+- gh#1036: Fix the border-radius of login input box on mail reset screen
+
+* Tue Oct 29 2024 - Clement Oudot <clem@ltb-project.org> - 1.7.1-1
+- gh#997 Replace lib detectbrowserlanguage in REST file
+
+* Tue Sep 24 2024 - Clement Oudot <clem@ltb-project.org> - 1.7.0-1
+- gh#943 Remove duplicate detectLanguage code
+- gh#948 Update ltb-common version to v0.3.0
+- gh#985 use new page_size parameter from ltb-common
+- gh#989 Arabic language support in documentation
+- gh#968 use password policy feature from ltb-common project
+- gh#982 improve cache modularity
+- gh#979 externalize cache functions into ltb-common
+- gh#763 [SMS API] "Rate Limit" and "max_attempts" is not working once captcha is submitted.
+- gh#954 use a lib for server side sessions
+- gh#914 Error 500 when clicking 'Send' on the password change screen
+- gh#973 Script multi_ldap_change.php is broken in 1.6
+- gh#970 Bad error catching in scripts/multi_ldap_change.php
+- gh#966 fix vulnerabilities in docker images
+- gh#957 UI Clarity improvement
+- gh#959 Create ko.inc.php
+- gh#401 Keep sending reset requests
+- gh#952 Bug: Making it possible to docker build both on M1/M2/M3 Mac and in an x86 VM
+- gh#951 Content-Security-Policy errors, crept back since 1.4
+- gh#934 lang: update cn and zh-CN
+- gh#925 Multible Findings with Trivy Scanner
+- gh#921 add a ldap_scope parameter
+- gh#944 update ltb-ldap library name to ltb-common
+- gh#789 Button for regenerate Captcha
+- gh#343 reCAPTCHA v3
+- gh#895 integrate friendly captcha
+- gh#894 refactor the captcha system for integrating external captcha
+- gh#913 fix: hide php notices from the end user in the web ui
+
 * Mon Jul 08 2024 - Clement Oudot <clem@ltb-project.org> - 1.6.1-1
 - gh#903: Missing documentation for entropy
 - gh#904: Unable to install on RockyLinux 8

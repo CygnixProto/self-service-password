@@ -52,16 +52,14 @@ if ( $result === "" ) {
         $tokenid = $token;
     }
 
-    # select internal session by $tokenid without relying on cookie or url
+    # select token in the cache
     # will gather login,time and smstoken values from session.
-    ini_set("session.use_cookies",0);
-    ini_set("session.use_only_cookies",1);
-
-    session_id($tokenid);
-    session_name("token");
-    session_start();
-    $login = $_SESSION['login'];
-    $smstoken = isset($_SESSION['smstoken']) ? $_SESSION['smstoken'] : false;
+    $cached_token_content = $sspCache->get_token($tokenid);
+    if($cached_token_content)
+    {
+        $login = $cached_token_content['login'];
+    }
+    $smstoken = isset($cached_token_content['smstoken']) ? $cached_token_content['smstoken'] : false;
     $posttoken = isset($_REQUEST['smstoken']) ? $_REQUEST['smstoken'] : 'undefined';
 
     if ( !$login ) {
@@ -72,7 +70,7 @@ if ( $result === "" ) {
         error_log("Token not associated with SMS code ".$posttoken);
     } else if (isset($token_lifetime)) {
         # Manage lifetime with session content
-        $tokentime = $_SESSION['time'];
+        $tokentime = $cached_token_content['time'];
         if ( time() - $tokentime > $token_lifetime ) {
             $result = "tokennotvalid";
             error_log("Token lifetime expired");
@@ -154,7 +152,7 @@ if ( !$result ) {
 # Check password strength
 if ( !$result ) {
     $entry_array = ldap_get_attributes($ldap, $entry);
-    $result = check_password_strength( $newpassword, "", $pwd_policy_config, $login, $entry_array, $change_custompwdfield );
+    $result = \Ltb\Ppolicy::check_password_strength( $newpassword, "", $pwd_policy_config, $login, $entry_array, $change_custompwdfield );
 }
 
 # Change password
@@ -179,8 +177,7 @@ if ( !$result ) {
 
 # Delete token if all is ok
 if ( $result === "passwordchanged" ) {
-    $_SESSION = array();
-    session_destroy();
+    $sspCache->cache->deleteItem($tokenid);
 }
 
 #==============================================================================

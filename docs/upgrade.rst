@@ -1,6 +1,55 @@
 Upgrade
 =======
 
+From 1.6 to 1.7
+---------------
+
+Cache configuration
+~~~~~~~~~~~~~~~~~~~
+
+A new cache system has been introduced in version 1.7 of Self-Service-Password. Your version will be automatically migrated to this new cache system, with a ``File`` adapter. You can also define a ``Redis`` adapter. New cache parameters in ``config.inc.php`` will work as they are, but you can adapt them if needed. See the :ref:`cache configuration<config_cache>` for more information.
+
+If you have configured ``$token_lifetime`` parameter, for example for reset by sms or reset by mail features, you should verify that the duration is coherent with the new :ref:`cache parameters<config_cache>`, and adapt these parameters in your local configuration file if needed:
+
+.. code-block:: php
+
+   # $cache_token_expiration: integer, duration in seconds of cached objects
+   # each time a token is involved
+   # (for example when sending a token by sms or by mail)
+   # it is recommended to set a value >= $token_lifetime
+   $cache_token_expiration = 3600;
+   # $cache_form_expiration: integer, duration in seconds of cached objects
+   # at some steps when a user has to validate a form
+   # (for example when validating the email address before we send the mail)
+   # it is recommended to set a value high enough for a user to fill a form
+   $cache_form_expiration = 120;
+
+New Dependencies
+~~~~~~~~~~~~~~~~
+
+New bundled dependencies have been added:
+
+* php-symfony-deprecation-contracts = v2.5.3
+* php-symfony-var-exporter = v5.4.40
+* php-psr-container = 1.1.2
+* php-symfony-service-contracts = v2.5.3
+* php-psr-cache = 1.0.1
+* php-symfony-cache-contracts = v2.5.3
+* php-psr-log = 1.1.4
+* php-symfony-cache = v5.4.42
+* php-predis-predis = v2.2.2
+
+New ldap parameter
+~~~~~~~~~~~~~~~~~~
+
+You can now retrieve users with a paged search, for example if your directory does not allow you to get all entries at once.
+
+You can enable this feature by setting a non-zero value to the page size parameter:
+
+.. code-block:: php
+
+   $ldap_page_size = 100;
+
 From 1.5 to 1.6
 ---------------
 

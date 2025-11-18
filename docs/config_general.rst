@@ -60,6 +60,7 @@ Language
 
 Available languages are:
 
+-  |image24| Arabic (ar)
 -  Basque (eu)
 -  |image0| Brazilian (pt-BR)
 -  |image1| Catalonia (ca)
@@ -74,6 +75,7 @@ Available languages are:
 -  |image10| Hungarian (hu)
 -  |image11| Italian (it)
 -  |image12| Japanese (ja)
+-  |flag_ko| Korean (ko)
 -  |image13| Norwegian bokmål (nb-NO)
 -  |image14| Polish (pl)
 -  |image15| Portuguese (pt-PT)
@@ -171,6 +173,34 @@ You can hide the footer bar:
 .. code-block:: php
 
     $display_footer = false;
+
+Custom templates
+^^^^^^^^^^^^^^^^
+
+If you need to do more changes on the interface, you can create a custom templates directory
+and override any of template file by copying it from ``templates/`` into the custom directory
+and adapt it to your needs:
+
+.. code-block:: php
+
+    $custom_tpl_dir = "templates_custom/";
+
+    To define a custom template paramter, create a config parameter with ``tpl_`` prefix:
+
+.. code-block:: php
+
+    $tpl_mycustomparam = true;
+
+And then use it in template:
+
+.. code-block:: html
+
+   <div>
+   {if $mycustomparam}
+   <p>Display this</p>
+   {else}
+   <p>Display that</p>
+   {/if}
 
 Debug
 -----
@@ -315,6 +345,74 @@ See `FriendlyCaptcha documentation <https://docs.friendlycaptcha.com/>`_ for mor
 
 You can also integrate any other Captcha module by developping the corresponding plugin. (see :doc:`developpers` )
 
+.. _config_cache:
+
+Cache
+-----
+
+self-service-password relies on Symfony cache libraries.
+
+First you must choose your cache adapter: File or Redis.
+
+Here are the parameters for File:
+
+.. code-block:: php
+
+   # cache type: File or Redis
+   $cache_type = "File";
+
+   # cache namespace: cache entries are grouped in this directory
+   $cache_namespace = "sspCache";
+
+   # cache directory: cache entries would be created in this extra
+   # directory inside namespace
+   $cache_directory = null;
+
+   # default lifetime for all cached entries
+   # not really usefull for now as each cache entry has a defined expiration
+   # (see cache_token_expiration and cache_form_expiration)
+   $cache_default_lifetime = 0;
+
+Here are the parameters for Redis:
+
+.. code-block:: php
+
+   # cache type: File or Redis
+   $cache_type = "Redis";
+
+   # Data Source Name (DSN) for accessing to Redis server
+   # See https://symfony.com/doc/current/components/cache/adapters/redis_adapter.html
+   $cache_redis_url = "redis:user:password@?host[redis1:6379]&timeout=5&dbindex=0";
+
+   # cache namespace: cache entries are prefixed by this namespace
+   $cache_namespace = "sspCache";
+
+   # default lifetime for all cached entries
+   # not really usefull for now as each cache entry has a defined expiration
+   # (see cache_token_expiration and cache_form_expiration)
+   $cache_default_lifetime = 0;
+
+You can then define the general parameters for any cache:
+
+.. code-block:: php
+
+   $cache_token_expiration = 3600;
+
+``$cache_token_expiration`` (integer) is the duration in seconds of cached objects each time a token is involved.
+
+For example when sending a token by sms or by mail, it is the time granted to the user for entering the sms code or for clicking on the link in the mail.
+
+it is recommended to set a value >= ``$token_lifetime``
+
+.. code-block:: php
+
+   $cache_form_expiration = 120;
+
+``$cache_form_expiration`` (integer) is the duration in seconds of cached objects at some steps when a user has to validate a form.
+
+For example it is the time granted to a user for validating the email address before sending the mail. It is used mainly for avoiding form replay (by user mistake or by a hacker).
+
+it is recommended to set a value high enough for a user to fill a form.
 
 .. |image0| image:: images/br.png
 .. |image1| image:: images/catalonia.png
@@ -340,3 +438,5 @@ You can also integrate any other Captcha module by developping the corresponding
 .. |image21| image:: images/tr.png
 .. |image22| image:: images/ua.png
 .. |image23| image:: images/rs.png
+.. |image24| image:: images/ar.png
+.. |flag_ko| image:: images/kr.png

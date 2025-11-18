@@ -3,7 +3,7 @@
 #==============================================================================
 # Version
 #==============================================================================
-$version = "1.6.1";
+$version = "1.7.3";
 
 #==============================================================================
 # Configuration
@@ -26,12 +26,11 @@ else { $source="unknown"; }
 #==============================================================================
 # Language
 #==============================================================================
-require_once("../lib/detectbrowserlanguage.php");
 # Available languages
 $files = glob("../lang/*.php");
 $languages = str_replace(".inc.php", "", $files);
 $languages = str_replace("../lang/", "", $languages);
-$lang = detectLanguage($lang, $allowed_lang ? array_intersect($languages,$allowed_lang) : $languages);
+$lang = \Ltb\Language::detect_language($lang, $allowed_lang ? array_intersect($languages,$allowed_lang) : $languages);
 require_once("../lang/$lang.inc.php");
 
 # Remove default questions
@@ -116,8 +115,34 @@ $ldapInstance = new \Ltb\Ldap(
                                  isset($ldap_network_timeout) ? $ldap_network_timeout : null,
                                  $ldap_base,
                                  null,
-                                 isset($ldap_krb5ccname) ? $ldap_krb5ccname : null
+                                 isset($ldap_krb5ccname) ? $ldap_krb5ccname : null,
+                                 isset($ldap_page_size) ? $ldap_page_size : 0
                              );
+
+#==============================================================================
+# Cache Config
+#==============================================================================
+$cache_class = '\\Ltb\\Cache\\'.$cache_type.'Cache';
+switch($cache_type)
+{
+    case "File":
+        $sspCache = new $cache_class( $cache_namespace,
+                                      $cache_default_lifetime,
+                                      $cache_directory
+                                    );
+        break;
+
+    case "Redis":
+        $sspCache = new $cache_class( $cache_redis_url,
+                                      $cache_namespace,
+                                      $cache_default_lifetime
+                                    );
+        break;
+
+    default:
+        error_log("Error: unknown cache type: $cache_type");
+        exit(1);
+}
 
 #==============================================================================
 # Captcha Config
@@ -219,7 +244,7 @@ $captcha_js   = '';
 $captcha_css  = '';
 if(isset($use_captcha) && $use_captcha == true)
 {
-    $captcha_html = $captchaInstance->generate_html_captcha($messages);
+    $captcha_html = $captchaInstance->generate_html_captcha($messages, $lang);
     $captcha_js = $captchaInstance->generate_js_captcha();
     $captcha_css = $captchaInstance->generate_css_captcha();
 }
@@ -231,10 +256,11 @@ require_once(SMARTY);
 
 $compile_dir = isset($smarty_compile_dir) ? $smarty_compile_dir : "../templates_c/";
 $cache_dir = isset($smarty_cache_dir) ? $smarty_cache_dir : "../cache/";
+$tpl_dir = isset($custom_tpl_dir) ? array('../'.$custom_tpl_dir, '../templates/') : '../templates/';
 
 $smarty = new Smarty();
 $smarty->escape_html = true;
-$smarty->setTemplateDir('../templates/');
+$smarty->setTemplateDir($tpl_dir);
 $smarty->setCompileDir($compile_dir);
 $smarty->setCacheDir($cache_dir);
 $smarty->debugging = $smarty_debug;
@@ -290,64 +316,13 @@ if (isset($source)) { $smarty->assign('source', $source); }
 if (isset($login)) { $smarty->assign('login', $login); }
 if (isset($token)) { $smarty->assign('token', $token); }
 if (isset($use_captcha)) { $smarty->assign('use_captcha', $use_captcha); }
-// TODO : Make it clean function show_policy - START
-if (isset($pwd_show_policy_pos)) {
-    $smarty->assign('pwd_show_policy_pos', $pwd_show_policy_pos);
-    $smarty->assign('pwd_show_policy', $pwd_show_policy);
-    $smarty->assign('pwd_show_policy_onerror', true);
-    if ( $pwd_show_policy === "onerror" ) {
-        if ( !preg_match( "/tooshort|toobig|minlower|minupper|mindigit|minspecial|forbiddenchars|sameasold|notcomplex|sameaslogin|pwned|specialatends/" , $result) ) {
-            $smarty->assign('pwd_show_policy_onerror', false);
-        } else {
-            $smarty->assign('pwd_show_policy_onerror', true);
-        }
-    }
-    if (isset($pwd_min_length)) { $smarty->assign('pwd_min_length', $pwd_min_length); }
-    if (isset($pwd_max_length)) { $smarty->assign('pwd_max_length', $pwd_max_length); }
-    if (isset($pwd_min_lower)) { $smarty->assign('pwd_min_lower', $pwd_min_lower); }
-    if (isset($pwd_min_upper)) { $smarty->assign('pwd_min_upper', $pwd_min_upper); }
-    if (isset($pwd_min_digit)) { $smarty->assign('pwd_min_digit', $pwd_min_digit); }
-    if (isset($pwd_min_special)) { $smarty->assign('pwd_min_special', $pwd_min_special); }
-    if (isset($pwd_complexity)) { $smarty->assign('pwd_complexity', $pwd_complexity); }
-    if (isset($pwd_diff_last_min_chars)) { $smarty->assign('pwd_diff_last_min_chars', $pwd_diff_last_min_chars); }
-    if (isset($pwd_forbidden_chars)) { $smarty->assign('pwd_forbidden_chars', $pwd_forbidden_chars); }
-    if (isset($pwd_no_reuse)) { $smarty->assign('pwd_no_reuse', $pwd_no_reuse); }
-    if (isset($pwd_diff_login)) { $smarty->assign('pwd_diff_login', $pwd_diff_login); }
-    if (isset($pwd_display_entropy)) { $smarty->assign('pwd_display_entropy', $pwd_display_entropy); }
-    if (isset($pwd_check_entropy)) { $smarty->assign('pwd_check_entropy', $pwd_check_entropy); }
-    if (isset($pwd_min_entropy)) { $smarty->assign('pwd_min_entropy', $pwd_min_entropy); }
-    if (isset($use_pwnedpasswords)) { $smarty->assign('use_pwnedpasswords', $use_pwnedpasswords); }
-    if (isset($pwd_no_special_at_ends)) { $smarty->assign('pwd_no_special_at_ends', $pwd_no_special_at_ends); }
 
-    // send policy to a JSON object usable in javascript (window.policy.[parameter])
-    $smarty->assign('json_policy', base64_encode(json_encode(
-                                                array(
-                                                  "pwd_min_length" => $pwd_min_length,
-                                                  "pwd_max_length" => $pwd_max_length,
-                                                  "pwd_min_lower" => $pwd_min_lower,
-                                                  "pwd_min_upper" => $pwd_min_upper,
-                                                  "pwd_min_digit" => $pwd_min_digit,
-                                                  "pwd_min_special" => $pwd_min_special,
-                                                  "pwd_complexity" => $pwd_complexity,
-                                                  "pwd_diff_last_min_chars" => $pwd_diff_last_min_chars,
-                                                  "pwd_forbidden_chars" => $pwd_forbidden_chars,
-                                                  "pwd_no_reuse" => $pwd_no_reuse,
-                                                  "pwd_diff_login" => $pwd_diff_login,
-                                                  "pwd_display_entropy" => $pwd_display_entropy,
-                                                  "pwd_check_entropy" => $pwd_check_entropy,
-                                                  "pwd_min_entropy" => $pwd_min_entropy,
-                                                  "use_pwnedpasswords" => $use_pwnedpasswords,
-                                                  "pwd_no_special_at_ends" => $pwd_no_special_at_ends,
-                                                  "pwd_special_chars" => $pwd_special_chars
-                                                )
-                                              )));
-}
+\Ltb\Ppolicy::smarty_assign_ppolicy($smarty, $pwd_show_policy_pos, $pwd_show_policy, $result, $pwd_policy_config);
 
 if (isset($custompwdindex)) {
     $smarty->assign('custompwdindex', $custompwdindex);
     if (isset($change_custompwdfield[$custompwdindex]['msg_passwordchangedextramessage'])) { $smarty->assign('msg_passwordchangedextramessage', $change_custompwdfield[$custompwdindex]['msg_passwordchangedextramessage']); }
 }
-// TODO : Make it clean function show_policy - END
 if (isset($smsdisplay)) { $smarty->assign('smsdisplay', $smsdisplay); }
 // TODO : Make it clean $prehook_return/$posthook_return - START
 if (isset($prehook_return)) {
@@ -372,6 +347,13 @@ if (isset($extended_error_msg)) { $smarty->assign('extended_error_msg', $extende
 if (isset($use_attributes) && $use_attributes && isset($attribute_mail)) { $smarty->assign('attribute_mail_update', true); }
 if (isset($use_attributes) && $use_attributes && isset($attribute_phone)) { $smarty->assign('attribute_phone_update', true); }
 
+# Assign custom template variables
+foreach (get_defined_vars() as $key => $value) {
+    if (preg_match('/^tpl_(.+)/', $key, $matches)) {
+        $smarty->assign($matches[1], $value);
+    }
+}
+
 # Assign messages
 $smarty->assign('lang',$lang);
 foreach ($messages as $key => $message) {
@@ -386,9 +368,11 @@ if (isset($questions_count)) { $smarty->assign('questions_count', $questions_cou
 if (isset($question)) { $smarty->assign('question', $question); }
 
 if (isset($login)) { $smarty->assign('login', $login); }
+if (isset($formtoken)) { $smarty->assign('formtoken', $formtoken); }
 if (isset($usermail)) { $smarty->assign('usermail', $usermail); }
 if (isset($displayname[0])) { $smarty->assign('displayname', $displayname[0]); }
 if (isset($encrypted_sms_login)) { $smarty->assign('encrypted_sms_login', $encrypted_sms_login); }
+if (isset($formtoken)) { $smarty->assign('formtoken', $formtoken); }
 
 # Set error message, criticity and fa_class
 

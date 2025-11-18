@@ -33,20 +33,20 @@ composer update --no-dev
 
 From current directory, do:
 ```
-./makedist VERSION
+./makedist.sh VERSION
 ```
 
 with VERSION the current verion of the package
 
 For example:
 ```
-./makedist 0.4
+./makedist 1.7.0
 ```
 
 
 ## 3 - Debian
 
-Form current directory, do:
+From current directory, do:
 
 ```
 dpkg-buildpackage -b -kLTB
@@ -134,4 +134,11 @@ Tag the `latest` image with the major and minor version, for example:
 docker tag self-service-password:latest ltbproject/self-service-password:1.4.4
 docker tag self-service-password:latest ltbproject/self-service-password:1.4
 docker tag self-service-password:latest ltbproject/self-service-password:latest
+```
+
+Tag the `alpine` image:
+```
+docker tag self-service-password-alpine:latest ltbproject/self-service-password:alpine-1.7.1
+docker tag self-service-password-alpine:latest ltbproject/self-service-password:alpine-1.7
+docker tag self-service-password-alpine:latest ltbproject/self-service-password:alpine-latest
 ```

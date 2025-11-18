@@ -48,6 +48,7 @@ $ldap_scope = "sub"; # possible values: sub, one, base
 $ldap_use_exop_passwd = false;
 $ldap_use_ppolicy_control = false;
 $ldap_network_timeout = 10;
+$ldap_page_size = 0;
 
 # Active Directory mode
 # true: use unicodePwd as password field
@@ -247,6 +248,53 @@ $crypt_tokens = true;
 # Token lifetime in seconds
 $token_lifetime = "3600";
 
+## File cache parameters
+
+# cache type: File or Redis
+$cache_type = "File";
+
+# cache namespace: cache entries are grouped in this directory
+$cache_namespace = "sspCache";
+
+# cache directory: cache entries would be created in this extra
+# directory inside namespace
+$cache_directory = null;
+
+# default lifetime for all cached entry
+# not really usefull for now as each cache entry has a defined expiration
+# (see cache_token_expiration and cache_form_expiration)
+$cache_default_lifetime = 0;
+
+## Redis cache parameters
+
+# cache type: File or Redis
+#$cache_type = "Redis";
+
+# Data Source Name (DSN) for accessing to Redis server
+# See https://symfony.com/doc/current/components/cache/adapters/redis_adapter.html
+#$cache_redis_url = "redis:user:password@?host[redis1:6379]&timeout=5&dbindex=0";
+
+# cache namespace: cache entries are prefixed by this namespace
+#$cache_namespace = "sspCache";
+
+# default lifetime for all cached entries
+# not really usefull for now as each cache entry has a defined expiration
+# (see cache_token_expiration and cache_form_expiration)
+#$cache_default_lifetime = 0;
+
+## General cache parameters
+
+# $cache_token_expiration: integer, duration in seconds of cached objects
+# each time a token is involved
+# (for example when sending a token by sms or by mail)
+# it is recommended to set a value >= $token_lifetime
+$cache_token_expiration = 3600;
+# $cache_form_expiration: integer, duration in seconds of cached objects
+# at some steps when a user has to validate a form
+# (for example when validating the email address before we send the mail)
+# it is recommended to set a value high enough for a user to fill a form
+$cache_form_expiration = 120;
+
 # Reset URL (mandatory)
 $reset_url = "http://ssp.example.com/";
 # If inside a virtual host
@@ -357,6 +405,9 @@ $background_image = "images/unsplash-space.jpeg";
 # Path is relative to htdocs/html and the custom CSS file should be created in css/ directory. For example: "css/sample.css"
 $custom_css = "";
 $display_footer = true;
+
+# Customized template directory: to ovverride some templates files
+$custom_tpl_dir = "";
 
 # Where to log password resets - Make sure apache has write permission
 # By default, they are logged in Apache log

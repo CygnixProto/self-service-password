@@ -21,6 +21,7 @@
                 <span class="input-group-text"><i class="fa fa-fw fa-user"></i></span>
                 <input type="text" name="login" id="login" value="{$login}" class="form-control" placeholder="{$msg_login}" autocomplete="off" />
             </div>
+            <input type="hidden" name="formtoken" id="formtoken" value="{$formtoken}" />
         </div>
     </div>
     {if !$mail_address_use_ldap}
