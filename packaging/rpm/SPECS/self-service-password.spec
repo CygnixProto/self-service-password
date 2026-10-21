@@ -16,7 +16,7 @@
 %undefine __brp_mangle_shebangs
 
 Name: self-service-password
-Version: 1.7.3
+Version: 1.8.2
 Release: 1%{?dist}
 Summary: LDAP password change web interface
 # Self-service-password is GPLv2+
@@ -108,6 +108,7 @@ mkdir -p %{buildroot}/%{ssp_destdir}/conf
 mkdir -p %{buildroot}/%{ssp_destdir}/htdocs
 mkdir -p %{buildroot}/%{ssp_destdir}/lang
 mkdir -p %{buildroot}/%{ssp_destdir}/lib
+mkdir -p %{buildroot}/%{ssp_destdir}/rest
 mkdir -p %{buildroot}/%{ssp_destdir}/scripts
 mkdir -p %{buildroot}/%{ssp_destdir}/templates
 mkdir -p %{buildroot}/%{ssp_destdir}/vendor
@@ -123,6 +124,7 @@ install -p -m 644 lang/*         %{buildroot}/%{ssp_destdir}/lang
 install -p -m 644 lib/*.php      %{buildroot}/%{ssp_destdir}/lib
 cp -a             lib/smsovh     %{buildroot}/%{ssp_destdir}/lib
 cp -a             lib/captcha    %{buildroot}/%{ssp_destdir}/lib
+cp -a             rest/*         %{buildroot}/%{ssp_destdir}/rest
 install -p -m 644 scripts/*      %{buildroot}/%{ssp_destdir}/scripts
 install -p -m 644 templates/*    %{buildroot}/%{ssp_destdir}/templates
 cp -a             vendor/*       %{buildroot}/%{ssp_destdir}/vendor
@@ -190,6 +192,75 @@ rm -rf %{ssp_cachedir}/{cache,templates_c}/*
 
 
 %changelog
+* Wed Sep 30 2026 - Clement Oudot <clem@ltb-project.org> - 1.8.2-1
+- gh#1123: Uncaught TypeError: LDAP value must be of type string|int|bool, float given
+- gh#1146: Polish the Polish language translations in lang/pl.inc.php
+- gh#1153: Ownership of `/var/cache/self-service-password/**` wrong in DEBs since 1.8
+- gh#1154: Bump guzzlehttp/guzzle from 7.4.5 to 7.15.1 in /lib
+- gh#1155: Bump guzzlehttp/psr7 from 2.11.0 to 2.13.0 in /lib
+- gh#1158: Bump guzzlehttp/guzzle from 7.15.1 to 7.15.2 in /lib
+- gh#1172: Rate limiter unreachable for failed answer attempts
+- gh#1173: Missing SMS token attempt limiter
+
+* Thu Jun 11 2026 - Clement Oudot <clem@ltb-project.org> - 1.8.1-1
+- gh#1138: "developpers" typo in various docs
+- gh#1140: Argument #2 could not be passed by reference
+- gh#1142: multi_ldap_change.php: $directory should be $s_directory in change_password() call
+- gh#1143: Fix call of change_password function insed multi-ldap-change script
+
+* Wed May 27 2026 - Clement Oudot <clem@ltb-project.org> - 1.8.0-1
+- gh#984: Use ltb-common Directory module for password change
+- gh#1035: transfer the AD specific code into the ltb-common Directory interface
+- gh#1037: Ukrainian translation corrected
+- gh#1042: [Question] How to customize or add some banners on the main page?
+- gh#1044: TLS: peer cert untrusted or revoked (0x42) - Docker v1.7.2
+- gh#1051: Allow customized template
+- gh#1052: Document how use env to configure LDAP TLS/SSL options
+- gh#1062: Rename ee.inc.php to et.inc.php
+- gh#1064: chore: Improve login field naming
+- gh#1065: Add show password eye on each password input to show/hide passwords
+- gh#1068: Build user DN from login to make service account optional
+- gh#1069: [documentation] ownership of /var/cache/self-service-password causing silent 500 error
+- gh#1071: Invalid signature of repository
+- gh#1079: Inject configuration variables in templates
+- gh#1082: Add configuration for favicon
+- gh#1084: Update Japanese Translation
+- gh#1085: Update Japanese translation
+- gh#1086: Correct time zone
+- gh#1090: Fix validation of SSH public keys
+- gh#1091: Fix handling of multi-word comments in SSH keys
+- gh#1092: Update repository deb822 format
+- gh#1096: UI reports success after Password Modify EXOP failure (ppolicy err=19). Avoid post-modify on failure.
+- gh#1097: Deprecated: Constant FILTER_SANITIZE_STRING is deprecated
+- gh#1098: update doc with deb822 repository format (#1092)
+- gh#1099: Add an option to show/hide password in password fields
+- gh#1102: display error logs even when $debug=false
+- gh#1103: display error logs even when $debug=false (#1102)
+- gh#1104: Configure the log level
+- gh#1105: typo: udate instead of update
+- gh#1106: fix typo udate -> update
+- gh#1107: Update PHP version for docker image
+- gh#1109: $pwd_forbidden_chars containing regex delimiters poses an issue
+- gh#1110: Use ltb-common v0.6.3
+- gh#1112: The official docker latest is missing sendmail again.
+- gh#1113: add missing dependency sendmail to docker image (#1112)
+- gh#1116: Debug level is configurable
+- gh#1118: Security: Update mistune in docs/requirements.txt to >= 2.0.3 (PYSEC-2022-237)
+- gh#1121: Fix hook doc
+- gh#1122: move code depending of ad_mode into ltb-common (#1035)
+- gh#1124: Fix Czech lang
+- gh#1125: Show/Hide password review
+- gh#1126: Fix ssh key parsing
+- gh#1127: Configurable timezone in audit logs
+- gh#1128: Implementing configurable favicon
+- gh#1129: Service accounts are optional for password change
+- gh#1131: Change to German Localization
+- gh#1132: Published docker image contains vulnerable apache httpd <2.4.67
+- gh#1133: Updated to latest php and alpine base images
+- gh#1134: Updating mistune v3.2.1
+- gh#1135: Permission clarification for cache and templates_c directories
+- gh#1137: Directory "rest/" is not provided in Debian/RPM packages
+
 * Wed Mar 26 2025 - Clement Oudot <clem@ltb-project.org> - 1.7.3-1
 - gh#1038: Missing token after form fail
 - gh#1039: fix missing token after form fail (#1038)

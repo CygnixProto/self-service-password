@@ -36,6 +36,7 @@ $userdn = "";
 if (!isset($pwd_forbidden_chars)) { $pwd_forbidden_chars=""; }
 $mail = "";
 $extended_error_msg = "";
+$attempts = 0;
 
 if (isset($_REQUEST["token"]) and $_REQUEST["token"]) { $token = strval($_REQUEST["token"]); }
 else { $result = "tokenrequired"; }
@@ -58,6 +59,7 @@ if ( $result === "" ) {
     if($cached_token_content)
     {
         $login = $cached_token_content['login'];
+        $attempts = $cached_token_content['attempts'];
     }
     $smstoken = isset($cached_token_content['smstoken']) ? $cached_token_content['smstoken'] : false;
     $posttoken = isset($_REQUEST['smstoken']) ? $_REQUEST['smstoken'] : 'undefined';
@@ -66,8 +68,16 @@ if ( $result === "" ) {
         $result = "tokennotvalid";
         error_log("Unable to open session $tokenid");
     } else if ( $smstoken and $posttoken !== $smstoken ) {
-        $result = "tokennotvalid";
-        error_log("Token not associated with SMS code ".$posttoken);
+        # To have only x tries and not x+1 tries
+        if ($attempts < ($sms_max_attempts_token - 1)) {
+            $cached_token_content['attempts'] = $attempts + 1;
+            $sspCache->save_token($cached_token_content, $tokenid);
+            $result = "tokenattempts";
+            error_log("SMS token $posttoken not valid, attempt $attempts");
+        } else {
+            $result = "tokennotvalid";
+            error_log("SMS token $posttoken not valid");
+        }
     } else if (isset($token_lifetime)) {
         # Manage lifetime with session content
         $tokentime = $cached_token_content['time'];
@@ -75,6 +85,9 @@ if ( $result === "" ) {
             $result = "tokennotvalid";
             error_log("Token lifetime expired");
         }
+    }
+    if ( $result === "tokennotvalid" ) {
+        $sspCache->cache->deleteItem($tokenid);
     }
 }
 
@@ -162,7 +175,7 @@ if ( !$result ) {
         exec($command, $prehook_output, $prehook_return);
     }
     if ( ! isset($prehook_return) || $prehook_return === 0 || $ignore_prehook_error ) {
-        $result = change_password($ldapInstance, $userdn, $newpassword, $ad_mode, $ad_options, $samba_mode, $samba_options, $shadow_options, $hash, $hash_options, "", "", $ldap_use_exop_passwd, $ldap_use_ppolicy_control, false, "");
+        $result = change_password( $directory, $ldapInstance, $userdn, $newpassword, $ldap_options, $samba_mode, $samba_options, $shadow_options, $hash, $hash_options, "", "", $ldap_use_exop_passwd, $ldap_use_ppolicy_control, false, "");
         if ( $result === "passwordchanged" && isset($posthook) ) {
             $command = hook_command($posthook, $login, $newpassword, null, $posthook_password_encodebase64);
             exec($command, $posthook_output, $posthook_return);

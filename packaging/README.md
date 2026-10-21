@@ -49,7 +49,7 @@ For example:
 From current directory, do:
 
 ```
-dpkg-buildpackage -b -kLTB
+dpkg-buildpackage -b -k"LTB-Project Debian"
 ```
 
 If you do not have LTB GPG secret key, do:

@@ -39,6 +39,12 @@ Adapt ownership of Smarty cache repositories so Apache user can write into them.
    chown apache:apache /usr/share/self-service-password/cache
    chown apache:apache /usr/share/self-service-password/templates_c
 
+.. Important:: When deploying using a custom user the folder permission for `/usr/share/self-service-password/`_ should be consistent.
+   By default `www-data:www-data`_ is configured during the debian package installation.
+
+.. Note:: The `cache`_ and `templates_c`_ folders can be created in `/var/cache/self-service-password`_. A configurable attribute called
+    `$smarty_cache_dir`_ and `$smarty_compile_dir`_ are defined in `config.inc.php`_ and can be overriden in `config.inc.local.php`_.
+
 Debian / Ubuntu
 ---------------
 
@@ -188,8 +194,8 @@ You can also add options that will be passed to the command line:
 Here, `-e debug` will be passed to the apache server
 
 
-From git repository, for developpers only
------------------------------------------
+From git repository, for developers only
+----------------------------------------
 
 You can get the content of git repository
 

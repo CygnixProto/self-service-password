@@ -3,7 +3,7 @@
 #==============================================================================
 # Version
 #==============================================================================
-$version = "1.7.3";
+$version = "1.8.2";
 
 #==============================================================================
 # Configuration
@@ -53,7 +53,7 @@ $dependency_check_results = array();
 if ( ! function_exists('ldap_connect') ) { $dependency_check_results[] = "nophpldap"; }
 else {
     # Check ldap_modify_batch presence if AD mode and password change as user
-    if ( $ad_mode and $who_change_password === "user" and ! function_exists('ldap_modify_batch') ) { $dependency_check_results[] = "phpupgraderequired"; }
+    if ( $ldap_type === "activedirectory" and $who_change_password === "user" and ! function_exists('ldap_modify_batch') ) { $dependency_check_results[] = "phpupgraderequired"; }
     # Check ldap_exop_passwd if LDAP exop password modify enabled
     if ( $ldap_use_exop_passwd and ! function_exists('ldap_exop_passwd') ) { $dependency_check_results[] = "phpupgraderequired"; }
     # Check LDAP_CONTROL_PASSWORDPOLICYREQUEST if LDAP ppolicy control enabled
@@ -118,6 +118,23 @@ $ldapInstance = new \Ltb\Ldap(
                                  isset($ldap_krb5ccname) ? $ldap_krb5ccname : null,
                                  isset($ldap_page_size) ? $ldap_page_size : 0
                              );
+
+#==============================================================================
+# Directory instance
+#==============================================================================
+$directory;
+
+# Load specific directory settings
+switch($ldap_type) {
+  case "openldap":
+    $directory = new \Ltb\Directory\OpenLDAP();
+  break;
+  case "activedirectory":
+    $directory = new \Ltb\Directory\ActiveDirectory();
+  break;
+}
+
+$dnAttribute = $directory->getDnAttribute();
 
 #==============================================================================
 # Cache Config
@@ -219,9 +236,10 @@ array_push( $available_actions, "checkentropy" );
 # Ensure requested action is available, or fall back to default
 if ( ! in_array($action, $available_actions) ) { $action = $default_action; }
 
+# By default, only display error logs and not the other levels
 error_reporting(0);
 if ($debug) {
-    error_reporting(E_ALL);
+    error_reporting($debug_level);
     # Set debug for LDAP
     ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, 7);
 }
@@ -231,6 +249,11 @@ if (file_exists($action.".php")) { require_once($action.".php"); }
 #==============================================================================
 # Audit
 #==============================================================================
+# Set default timezone
+if ( isset($date_timezone) && !empty($date_timezone) ) {
+    date_default_timezone_set($date_timezone);
+}
+
 if ($audit_log_file and !preg_match("/empty.*form/", $result)) {
     require_once("../lib/audit.inc.php");
     auditlog($audit_log_file, $userdn, $login, $action, $result);
@@ -278,11 +301,13 @@ else
 $smarty->assign('ldap_params',array('ldap_url' => $ldap_url, 'ldap_starttls' => $ldap_starttls, 'ldap_binddn' => $ldap_binddn, 'ldap_bindpw' => $ldap_bindpw));
 $smarty->assign('logo',$logo);
 $smarty->assign('background_image',$background_image);
+$smarty->assign('favicon',$favicon);
 $smarty->assign('custom_css',$custom_css);
 $smarty->assign('version',$version);
 $smarty->assign('display_footer',$display_footer);
 $smarty->assign('show_menu', $show_menu);
 $smarty->assign('show_help', $show_help);
+$smarty->assign('show_pwd', $show_pwd);
 $smarty->assign('use_questions', $use_questions);
 $smarty->assign('use_tokens', $use_tokens);
 $smarty->assign('use_sms', $use_sms);

@@ -33,6 +33,8 @@
 # false: log only errors and do not display them (use this in production)
 $debug = false;
 
+$debug_level = E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED & ~E_WARNING;
+
 # LDAP
 $ldap_url = "ldap://localhost";
 $ldap_starttls = false;
@@ -42,6 +44,7 @@ $ldap_bindpw = 'secret';
 //$ldap_krb5ccname = "/path/to/krb5cc";
 $ldap_base = "dc=example,dc=com";
 $ldap_login_attribute = "uid";
+#$ldap_build_user_dn = "$ldap_login_attribute={login},ou=users,$ldap_base";
 $ldap_fullname_attribute = "cn";
 $ldap_filter = "(&(objectClass=person)($ldap_login_attribute={login}))";
 $ldap_scope = "sub"; # possible values: sub, one, base
@@ -50,17 +53,15 @@ $ldap_use_ppolicy_control = false;
 $ldap_network_timeout = 10;
 $ldap_page_size = 0;
 
-# Active Directory mode
-# true: use unicodePwd as password field
-# false: LDAPv3 standard behavior
-$ad_mode = false;
-$ad_options=[];
+# LDAP type (openldap or activedirectory)
+$ldap_type = "openldap";
+$ldap_options=[];
 # Force account unlock when password is changed
-$ad_options['force_unlock'] = false;
+$ldap_options['force_unlock'] = false;
 # Force user change password at next login
-$ad_options['force_pwd_change'] = false;
+$ldap_options['force_pwd_change'] = false;
 # Allow user with expired password to change password
-$ad_options['change_expired_password'] = false;
+$ldap_options['change_expired_password'] = false;
 
 # Samba mode
 # true: update sambaNTpassword and sambaPwdLastSet attributes too
@@ -90,7 +91,7 @@ $shadow_options['shadow_expire_days'] = -1;
 # ARGON2
 # clear (the default)
 # auto (will check the hash of current password)
-# This option is not used with ad_mode = true
+# This option is not used with when $ldap_type = activedirectory
 $hash = "clear";
 $hash_options=[];
 
@@ -190,7 +191,7 @@ $change_sshkey_attribute = "sshPublicKey";
 $change_sshkey_objectClass = "ldapPublicKey";
 
 # Ensure the SSH Key submitted uses a type we trust
-$ssh_valid_key_types = array('ssh-rsa', 'ssh-dss', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ssh-ed25519');
+$ssh_valid_key_types = array('ssh-rsa', 'ssh-dss', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'ssh-ed25519', 'sk-ecdsa-sha2-nistp256@openssh.com', 'sk-ssh-ed25519@openssh.com');
 
 # Who changes the sshPublicKey attribute?
 # Also applicable for question/answer save
@@ -389,6 +390,9 @@ $show_help = true;
 # Default language
 $lang = "en";
 
+# Default Timezone
+$date_timezone = "UTC";
+
 # List of authorized languages. If empty, all language are allowed.
 # If not empty and the user's browser language setting is not in that list, language from $lang will be used.
 $allowed_lang = array();
@@ -396,11 +400,17 @@ $allowed_lang = array();
 # Display menu on top
 $show_menu = true;
 
+# Display eyes to show password fields
+$show_pwd = false;
+
 # Logo
 $logo = "images/ltb-logo.png";
 
 # Background image
 $background_image = "images/unsplash-space.jpeg";
+
+# Favicon
+$favicon = "images/favicon.ico";
 
 # Path is relative to htdocs/html and the custom CSS file should be created in css/ directory. For example: "css/sample.css"
 $custom_css = "";
@@ -516,7 +526,7 @@ $presetLogin = "";
 if (isset($header_name_preset_login)) {
     $presetLoginKey = "HTTP_".strtoupper(str_replace('-','_',$header_name_preset_login));
     if (array_key_exists($presetLoginKey, $_SERVER)) {
-        $presetLogin = preg_replace("/[^a-zA-Z0-9-_@\.]+/", "", filter_var($_SERVER[$presetLoginKey], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
+        $presetLogin = preg_replace("/[^a-zA-Z0-9-_@\.]+/", "", htmlspecialchars($_SERVER[$presetLoginKey]));
     }
 }
 
@@ -524,7 +534,7 @@ if (isset($header_name_preset_login)) {
 if (isset($header_name_extra_config)) {
     $extraConfigKey = "HTTP_".strtoupper(str_replace('-','_',$header_name_extra_config));
     if (array_key_exists($extraConfigKey, $_SERVER)) {
-        $extraConfig = preg_replace("/[^a-zA-Z0-9-_]+/", "", filter_var($_SERVER[$extraConfigKey], FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
+        $extraConfig = preg_replace("/[^a-zA-Z0-9-_]+/", "", htmlspecialchars($_SERVER[$extraConfigKey]));
         if (strlen($extraConfig) > 0 && file_exists (__DIR__ . "/config.inc.".$extraConfig.".php")) {
             require_once  __DIR__ . "/config.inc.".$extraConfig.".php";
         }

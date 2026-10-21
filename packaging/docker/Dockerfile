@@ -6,7 +6,7 @@ ARG SMARTY_URL=https://github.com/smarty-php/smarty/archive/refs/tags/v${SMARTY_
 ARG COMPOSER_VERSION=lts
 ARG COMPOSER_IMAGE=composer/composer:${COMPOSER_VERSION}-bin
 
-ARG BASE_IMAGE=php:8.3-apache
+ARG BASE_IMAGE=php:8.5.6-apache-trixie
 
 FROM ${COMPOSER_IMAGE} AS composer
 FROM ${BASE_IMAGE} AS base
@@ -25,6 +25,7 @@ ARG RUNTIME_DEPS=" \
         locales \
         locales-all \
         libsasl2-modules-gssapi-mit \
+        sendmail \
     "
 RUN --mount=type=cache,target=/var/lib/apt/lists \
     set -ex; \
@@ -66,7 +67,6 @@ RUN --mount=type=cache,target=/var/lib/apt/lists \
         bcmath \
         bz2 \
         intl \
-        opcache \
         ldap \
         gd \
         ; \

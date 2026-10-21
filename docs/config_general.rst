@@ -129,32 +129,51 @@ You can add extra messages by setting values in these parameters:
    $messages['passwordchangedextramessage'] = "Congratulations!";
    $messages['changehelpextramessage'] = "Contact us if you are lost...";
 
+Timezone
+--------
+
+You can adapt the default timezone for displaying all the dates (see the `complete list of timezones <https://www.php.net/manual/en/timezones.php>`_):
+
+.. code-block:: php
+
+    $date_timezone = "UTC";
+
+..note::
+    This attribute will override environment variable ``TZ`` which users can configure in containers.
+
+
 Graphics
 --------
 
 Logo
 ^^^^
 
-You change the default logo with your own. Set the path to your logo in
+You can change the default logo with your own. Set the path to your logo in
 ``$logo``:
 
 .. code-block:: php
 
    $logo = "images/ltb-logo.png";
 
-.. tip:: Comment this parameter to hide logo
-
 Background
 ^^^^^^^^^^
 
-You change the background image with your own. Set the path to image in
+You can change the background image with your own. Set the path to image in
 ``$background_image``:
 
 .. code-block:: php
 
    $background_image = "images/unsplash-space.jpeg";
 
-.. tip:: Comment this parameter to falll back to default background color
+Favicon
+^^^^^^^
+
+You can change the favicon to your own custom image. Set the path to favicon in
+``$favicon``:
+
+.. code-block:: php
+
+   $favicon = "images/favicon.ico";
 
 Custom CSS
 ^^^^^^^^^^
@@ -202,6 +221,15 @@ And then use it in template:
    <p>Display that</p>
    {/if}
 
+Show passwords
+^^^^^^^^^^^^^^
+
+You can add an icon on password fields that will allow user to see the cleartext password by clicking on it:
+
+.. code-block:: php
+
+    $show_pwd = true;
+
 Debug
 -----
 
@@ -212,6 +240,13 @@ You can turn on debug mode with ``$debug``:
    $debug = true;
 
 .. tip:: Debug messages will be printed in server logs.
+
+You can adjust the debug level by using PHP predefined constants in ``$debug_level``:
+
+.. code-block:: php
+
+    $debug_level = E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED & ~E_WARNING;
+
 
 This is also possible to enable Smarty debug, for web interface issues:
 
@@ -343,7 +378,7 @@ If you want to set up ``FriendlyCaptcha``, you must also configure additional pa
 
 See `FriendlyCaptcha documentation <https://docs.friendlycaptcha.com/>`_ for more information
 
-You can also integrate any other Captcha module by developping the corresponding plugin. (see :doc:`developpers` )
+You can also integrate any other Captcha module by developing the corresponding plugin. (see :doc:`developers` )
 
 .. _config_cache:
 
