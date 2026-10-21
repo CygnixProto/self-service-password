@@ -119,8 +119,9 @@ ARG INSTALL_PATHS=
 ARG EXCLUDE_PATHS=
 
 WORKDIR /build/ssp
+# COPY instead of an rw bind mount: OKD's buildah can't overlay the build context
+COPY . /build/ssp
 RUN --mount=type=cache,target=/root/.composer \
-    --mount=type=bind,target=/build/ssp,rw \
     packaging/docker/install; \
     find /etc/apache2/sites-available/ -type f -name \*.conf -exec install -p -m 644 -D {} /rootfs{} \; ; \
     sed -e "s#/var/www/html#/var/www/htdocs#g" -i /rootfs/etc/apache2/sites-available/*; \
