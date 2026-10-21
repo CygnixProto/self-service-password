@@ -51,6 +51,7 @@ ARG BUILD_DEPS=" \
         libwebp-dev \
         libldap2-dev \
         libsasl2-dev \
+        busybox \
     "
 RUN --mount=type=cache,target=/var/lib/apt/lists \
     set -ex; \
@@ -59,6 +60,8 @@ RUN --mount=type=cache,target=/var/lib/apt/lists \
     \
     apt-get update; \
     apt-get install -y --no-install-recommends ${BUILD_DEPS}; \
+# busybox xz: OKD node kernel's partial Landlock ABI 6 breaks xz 5.8's sandbox
+    ln -s "$(command -v busybox)" /usr/local/bin/xz; \
     \
     docker-php-source extract; \
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
@@ -71,6 +74,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists \
         gd \
         ; \
     docker-php-source delete; \
+    rm /usr/local/bin/xz; \
     a2enmod rewrite; \
     \
 # reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
